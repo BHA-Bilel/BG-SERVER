@@ -270,15 +270,11 @@ public class COINCHE_GameServer extends GameServer {
             }
             if (highestComb != null) {
                 if (highestComb.getPosition() == Position.BOTTOM || highestComb.getPosition() == Position.TOP) {
-                    hand1.showDeclarations();
                     hand2.removeDeclarations();
-                    hand3.showDeclarations();
                     hand4.removeDeclarations();
                 } else {
                     hand1.removeDeclarations();
-                    hand2.showDeclarations();
                     hand3.removeDeclarations();
-                    hand4.showDeclarations();
                 }
             }
         }

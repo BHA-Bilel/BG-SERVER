@@ -280,12 +280,4 @@ public class Hand {
 			declarations.removeIf(comb -> comb.getType() != ComboType.Belote);
 	}
 
-	public void showDeclarations() {
-		if (declarations != null)
-			for (Combination comb : declarations) {
-				System.out.println(comb);
-				System.out.println("\n\n----------------------------------------------");
-			}
-		System.out.println("--------------------------------------------------------");
-	}
 }

@@ -67,7 +67,6 @@ public class MainGameServer extends Thread {
     public void removeRoom(int roomPort) {
         rooms.remove(roomPort);
         limit.release();
-        System.out.println("room closed, available : " + limit.availablePermits());
     }
 
     private void serveAvailableRooms(Socket joinSocket, ObjectInputStream objIn, ObjectOutputStream objOut)

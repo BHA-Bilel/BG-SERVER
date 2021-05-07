@@ -3,6 +3,7 @@ package main;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -16,12 +17,11 @@ public class Main {
 
     public static void main(String[] args) {
         Properties prop = new Properties();
-        try (FileInputStream ip = new FileInputStream("src/shared/config.properties")) {
+        try (InputStream ip = Main.class.getResourceAsStream("/config.properties")) {
             prop.load(ip);
             PORT = Integer.parseInt(prop.getProperty("PORT"));
-
         } catch (IOException e) {
-            System.out.println("Couldn't read properties file!");
+            System.err.println("Couldn't read properties file!");
             System.exit(1);
         }
         Thread mainThread = new Thread(() -> {
@@ -53,7 +53,6 @@ public class Main {
             }
         }
         mainThread.start();
-        System.out.println("SERVERS STARTED SUCCESSFULLY !");
     }
 
 }
