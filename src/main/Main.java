@@ -1,14 +1,16 @@
 package main;
 
-import java.io.*;
+import shared.Game;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
-import shared.Game;
 
 public class Main {
     private static int PORT;

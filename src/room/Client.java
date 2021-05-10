@@ -90,22 +90,25 @@ public class Client extends Thread {
                 RoomMsg msg = (RoomMsg) objIn.readObject();
                 RoomMsg resp;
                 switch (RoomComm.values()[msg.comm]) {
-                    case GO_PRIVATE -> {
+                    case GO_PRIVATE: {
                         room.setPublic(false);
                         resp = new RoomMsg(id, RoomComm.GONE_PRIVATE);
                         room.diffuseMsg(resp);
+                        break;
                     }
-                    case GO_PUBLIC -> {
+                    case GO_PUBLIC: {
                         room.setPublic(true);
                         resp = new RoomMsg(id, RoomComm.GONE_PUBLIC);
                         room.diffuseMsg(resp);
+                        break;
                     }
-                    case START_GAME -> {
+                    case START_GAME: {
                         resp = new RoomMsg(RoomComm.GAME_STARTING);
                         room.diffuseMsg(resp);
                         room.startGame();
+                        break;
                     }
-                    case REQUEST_CHANGE_NAME -> {
+                    case REQUEST_CHANGE_NAME: {
                         room.name_mutex.lock();
                         int dup = room.getUniqueName(id, ((String) msg.adt_data[0]).toLowerCase(), 0);
                         if (dup > 0)
@@ -115,18 +118,38 @@ public class Client extends Thread {
                         resp = new RoomMsg(id, RoomComm.CHANGED_NAME, new Object[]{name});
                         room.diffuseMsg(resp);
                         room.name_mutex.unlock();
+                        break;
                     }
-                    case REQUEST_KICK -> {
+                    case REQUEST_KICK: {
                         resp = new RoomMsg((int) msg.adt_data[0], RoomComm.KICKED);
                         room.diffuseMsg(resp);
                         room.clientKicked((int) msg.adt_data[0]);
+                        break;
                     }
-                    case END_GAME -> room.endGame();
-                    case REQUEST_TEAM_UP -> room.request_team_up(msg);
-                    case TAKE_EMPTY_PLACE -> room.take_empty_place(this, msg.adt_data);
-                    case ACCEPT_TEAM_UP -> room.team_up(msg);
-                    case DENY_TEAM_UP -> room.denied_team_up(msg);
-                    default -> room.diffuseClientMsg(this, msg);
+                    case END_GAME: {
+                        room.endGame();
+                        break;
+                    }
+                    case REQUEST_TEAM_UP : {
+                        room.request_team_up(msg);
+                        break;
+                    }
+                    case TAKE_EMPTY_PLACE : {
+                        room.take_empty_place(this, msg.adt_data);
+                        break;
+                    }
+                    case ACCEPT_TEAM_UP : {
+                        room.team_up(msg);
+                        break;
+                    }
+                    case DENY_TEAM_UP : {
+                        room.denied_team_up(msg);
+                        break;
+                    }
+                    default : {
+                        room.diffuseClientMsg(this, msg);
+                        break;
+                    }
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
