@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.beryx.jlink' version '2.23.8'
+}
+
+
+group 'bg.server'
+version '1.0'
+sourceCompatibility = 11
+
+application {
+    mainClass.set("bg.server.Main")
+    mainModule.set("MainModule")
+}
+
+jlink {
+    launcher {
+        name = 'start_server'
+    }
+    targetPlatform("win32") {
+        jdkHome = "F:/cross-platform-deploy/win32/OpenJDK11U-jdk_x86-32_windows_hotspot_11.0.11_9/jdk-11.0.11+9"
+        addOptions('--compress', '2', '--no-header-files', '--no-man-pages')
+    }
+    targetPlatform("win64") {
+        addOptions('--compress', '2', '--no-header-files', '--no-man-pages')
+    }
+
+    targetPlatform("linux-s390x") {
+        jdkHome = "F:/cross-platform-deploy/linux-s390x/OpenJDK11U-jdk_s390x_linux_hotspot_11.0.11_9/jdk-11.0.11+9"
+        addOptions('--compress', '2', '--no-header-files', '--no-man-pages')
+    }
+
+    targetPlatform("mac") {
+        jdkHome = "F:/cross-platform-deploy/mac/OpenJDK11U-jdk_x64_mac_hotspot_11.0.11_9/jdk-11.0.11+9/Contents/Home"
+        addOptions('--compress', '2', '--no-header-files', '--no-man-pages')
+    }
+
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+test {
+    useJUnitPlatform()
+}
