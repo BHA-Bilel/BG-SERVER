@@ -50,8 +50,7 @@ public class RoomServer {
         chatServer = new ChatServer();
         waitRunnable = () -> {
             try {
-                int players_count = clients.size();
-                while (players_count < game.players) {
+                while (clients.size() < game.players) {
                     Socket client_socket = roomServer.accept();
                     if (stop_waiting) {
                         return;
@@ -62,9 +61,10 @@ public class RoomServer {
                             new_client.position = getEmptyPosition();
                             new_client.id = playerID;
                             playerID++;
+                            int players_before_you = clients.size();
                             clients.put(new_client.id, new_client);
                             place_mutex.unlock();
-                            new_client.handShake(chatServer.getPort(), players_count);
+                            new_client.handShake(chatServer.getPort(), players_before_you);
                             MeetNewClient(new_client);
                             chatServer.acceptNewclient(new_client.id);
                             new_client.start();
@@ -72,7 +72,6 @@ public class RoomServer {
                             new_client.closeConnection();
                         }
                     }
-                    players_count = clients.size();
                 }
                 try {
                     roomServer.close();
