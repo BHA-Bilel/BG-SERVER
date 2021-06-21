@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.ArrayList;
 
 import bg.server.room.RoomServer;
 
@@ -17,8 +16,8 @@ public class XO_GameServer extends GameServer {
     @Override
     public void acceptConnection() {
         try {
-            ServerSideConnection player1;
-            ServerSideConnection player2;
+            GameServerClient player1;
+            GameServerClient player2;
 
             room.NotifyNextPlayer();
             Socket c1 = gameServer.accept();
@@ -28,9 +27,9 @@ public class XO_GameServer extends GameServer {
 
             sockets.add(c1);
             sockets.add(c2);
-            player1 = new ServerSideConnection(2, new DataInputStream(c1.getInputStream()),
+            player1 = new GameServerClient(2, new DataInputStream(c1.getInputStream()),
                     new DataOutputStream(c2.getOutputStream()));
-            player2 = new ServerSideConnection(1, new DataInputStream(c2.getInputStream()),
+            player2 = new GameServerClient(1, new DataInputStream(c2.getInputStream()),
                     new DataOutputStream(c1.getOutputStream()));
             Thread p1 = new Thread(player1);
             Thread p2 = new Thread(player2);
@@ -42,12 +41,12 @@ public class XO_GameServer extends GameServer {
         }
     }
 
-    private static class ServerSideConnection implements Runnable {
+    private static class GameServerClient implements Runnable {
 
         private final DataInputStream dataIn;
         private final DataOutputStream dataOut;
 
-        public ServerSideConnection(int otherPlayerID, DataInputStream myIn, DataOutputStream opOut) {
+        public GameServerClient(int otherPlayerID, DataInputStream myIn, DataOutputStream opOut) {
             this.dataIn = myIn;
             dataOut = opOut;
             try {

@@ -1,38 +1,29 @@
 package bg.server.dominos.model;
 
 import java.util.ArrayList;
-import java.util.Random;
+import java.util.Collections;
 
 public class Deck {
-	private final ArrayList<Domino> dominos;
-	private final Random rand;
+    private final ArrayList<Domino> dominos;
+    private final ArrayList<Domino> populated;
 
-	public Deck() {
-		dominos = new ArrayList<>();
-		rand = new Random();
-	}
+    public Deck() {
+        dominos = new ArrayList<>();
+        populated = new ArrayList<>();
+        for (int i = 0; i < 7; i++) for (int j = i; j < 7; j++) populated.add(new Domino(i, j));
+    }
 
-	public void populate() {
-		for (int i = 0; i < 7; i++) {
-			for (int j = i; j < 7; j++) {
-				dominos.add(new Domino(i, j, Position.CENTER));
-			}
-		}
-	}
+    public void prepare() {
+        dominos.clear();
+        dominos.addAll(populated);
+        Collections.shuffle(dominos);
+    }
 
-	public void shuffle() {
-		for (int i = dominos.size() - 1; i > 0; i--) {
-			int randIndex = rand.nextInt(i);
-			Domino randCard = dominos.set(randIndex, dominos.get(i));
-			dominos.set(i, randCard);
-		}
-	}
+    public ArrayList<Domino> getDominos() {
+        return dominos;
+    }
 
-	public ArrayList<Domino> getDominos() {
-		return dominos;
-	}
-
-	public void remove(Domino selected) {
-		dominos.remove(selected);
-	}
+    public void remove(Domino selected) {
+        dominos.remove(selected);
+    }
 }

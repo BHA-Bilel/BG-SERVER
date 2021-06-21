@@ -171,21 +171,20 @@ public class RoomServer {
     }
 
     public synchronized void closeRoom() {
-        if (!roomClosed) {
-            for (Entry<Integer, Client> IdClientEntry : clients.entrySet()) {
-                IdClientEntry.getValue().closeConnection();
-            }
-            try {
-                roomServer.close();
-            } catch (IOException ignore) {
-            }
-            if (chatServer != null)
-                chatServer.closeChat();
-            if (gameServer != null)
-                gameServer.closeGame();
-            mainGameServer.removeRoom(getPort());
-            roomClosed = true;
+        if (roomClosed) return;
+        roomClosed = true;
+        for (Entry<Integer, Client> IdClientEntry : clients.entrySet()) {
+            IdClientEntry.getValue().closeConnection();
         }
+        try {
+            roomServer.close();
+        } catch (IOException ignore) {
+        }
+        if (chatServer != null)
+            chatServer.closeChat();
+        if (gameServer != null)
+            gameServer.closeGame();
+        mainGameServer.removeRoom(getPort());
     }
 
     public void diffuseClientMsg(Client client, RoomMsg msg) {
@@ -198,35 +197,28 @@ public class RoomServer {
 
     public void clientLeft(Client left) {
         Client removed = clients.remove(left.id);
-        if (removed != null) {
-            if (clients.isEmpty()) {
-                closeRoom();
-            } else {
-                left.closeConnection();
-                RoomMsg msg = new RoomMsg(left.id, RoomComm.LEFT);
-                diffuseMsg(msg);
-                if (gameServer != null) {
-                    endGame();
-                }
-                waitForPlayers(false);
+        if (removed == null) return;
+        if (clients.isEmpty()) {
+            closeRoom();
+        } else {
+            left.closeConnection();
+            RoomMsg msg = new RoomMsg(left.id, RoomComm.LEFT);
+            diffuseMsg(msg);
+            if (gameServer != null) {
+                endGame();
             }
+            waitForPlayers(false);
         }
     }
 
     public void clientKicked(int id) {
-        Client kicked = null;
-        for (Entry<Integer, Client> IdClientEntry : clients.entrySet()) {
-            Client client = IdClientEntry.getValue();
-            if (client.id == id) {
-                kicked = client;
-                break;
-            }
+        Client kicked = clients.remove(id);
+        if (kicked == null) return;
+        kicked.closeConnection();
+        if (gameServer != null) {
+            endGame();
         }
-        if (kicked != null) {
-            clients.remove(kicked.id);
-            kicked.closeConnection();
-            waitForPlayers(false);
-        }
+        waitForPlayers(false);
     }
 
     public int getUniqueName(int id, String nameToLowerCase, int duplicates) {
@@ -272,8 +264,7 @@ public class RoomServer {
         }
         return host != null ? host.name : null;
     }
-
-
+    
     protected void request_team_up(RoomMsg msg) {
         Client team_up_with = clients.get((int) msg.adt_data[0]);
         if (team_up_with != null)
@@ -369,13 +360,11 @@ public class RoomServer {
     }
 
     public synchronized void endGame() {
-        if (gameServer != null) {
-            RoomMsg msg = new RoomMsg(RoomComm.GAME_ENDED);
-            diffuseMsg(msg);
-            gameServer.closeGame();
-            gameServer = null;
-            waitForPlayers(false);
-        }
+        if (gameServer == null) return;
+        RoomMsg msg = new RoomMsg(RoomComm.GAME_ENDED);
+        diffuseMsg(msg);
+        gameServer.closeGame();
+        gameServer = null;
+        waitForPlayers(false);
     }
-
 }

@@ -1,51 +1,35 @@
 package bg.server.game;
 
-import java.io.IOException;
-
-import bg.server.room.RoomServer;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
-
 import bg.server.dominos.model.Deck;
 import bg.server.dominos.model.Domino;
 import bg.server.dominos.model.GameType;
-import bg.server.dominos.model.Position;
+import bg.server.room.RoomServer;
+import shared.domino.DominoComm;
+import shared.domino.DominoMsg;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DOMINOS_GameServer extends GameServer {
 
-    /*
-     * give : playerID, firstToPlay, dominoes, playable, exchange : dominoes && draw
-     */
     public final GameType GAME_TYPE;
-    public ServerSocket blockServer, SpreadWinServer;
-    private SpreadWinThread sw1, sw2, sw3, sw4;
-    private PlayThread play1, play2, play3, play4;
-    private BlockThread block;
+    private final Map<Integer, GameServerClient> clients;
+    private final Map<Integer, List<Domino>> dominoes;
     private int drawCount;
-    private List<Domino> player1dominoes, player2dominoes, player3dominoes, player4dominoes;
-
-    private Deck deck;
+    private final Deck deck;
 
     public DOMINOS_GameServer(RoomServer room, GameType GAME_TYPE) throws IOException {
         super(room);
         this.GAME_TYPE = GAME_TYPE;
+        clients = new HashMap<>();
+        dominoes = new HashMap<>();
         deck = new Deck();
-        deck.populate();
-        deck.shuffle();
-        spreadDominoes();
-        this.SpreadWinServer = new ServerSocket(0);
-        this.blockServer = new ServerSocket(0);
-    }
-
-    @Override
-    public Object[] getPort() {
-        return new Object[]{gameServer.getLocalPort(), SpreadWinServer.getLocalPort(), blockServer.getLocalPort()};
     }
 
     @Override
@@ -58,8 +42,6 @@ public class DOMINOS_GameServer extends GameServer {
         }
         try {
             gameServer.close();
-            blockServer.close();
-            SpreadWinServer.close();
         } catch (IOException ignore) {
         }
     }
@@ -67,130 +49,34 @@ public class DOMINOS_GameServer extends GameServer {
     @Override
     public void acceptConnection() {
         try {
-            if (GAME_TYPE == GameType.TwovTwo) {
-
+            int id = 1;
+            while (id <= GAME_TYPE.players) {
                 room.NotifyNextPlayer();
-                Socket w1 = SpreadWinServer.accept();
-                sockets.add(w1);
-                Socket p1 = gameServer.accept();
-                sockets.add(p1);
-                Socket b1 = blockServer.accept();
-                sockets.add(b1);
-
-                room.NotifyNextPlayer();
-                Socket w2 = SpreadWinServer.accept();
-                sockets.add(w2);
-                Socket p2 = gameServer.accept();
-                sockets.add(p2);
-                Socket b2 = blockServer.accept();
-                sockets.add(b2);
-
-                room.NotifyNextPlayer();
-                Socket w3 = SpreadWinServer.accept();
-                sockets.add(w3);
-                Socket p3 = gameServer.accept();
-                sockets.add(p3);
-                Socket b3 = blockServer.accept();
-                sockets.add(b3);
-
-                room.NotifyNextPlayer();
-                Socket w4 = SpreadWinServer.accept();
-                sockets.add(w4);
-                Socket p4 = gameServer.accept();
-                sockets.add(p4);
-                Socket b4 = blockServer.accept();
-                sockets.add(b4);
-
-                sw1 = new SpreadWinThread(1, w1, w2, w3, w4);
-                sw2 = new SpreadWinThread(2, w2, w1, w3, w4);
-                sw3 = new SpreadWinThread(3, w3, w1, w2, w4);
-                sw4 = new SpreadWinThread(4, w4, w1, w2, w3);
-
-                play1 = new PlayThread(p1, p2, p3, p4);
-                play2 = new PlayThread(p2, p1, p3, p4);
-                play3 = new PlayThread(p3, p1, p2, p4);
-                play4 = new PlayThread(p4, p1, p2, p3);
-
-                block = new BlockThread(b1, b2, b3, b4);
-
-            } else if (GAME_TYPE == GameType.ThreePlayers) {
-
-                room.NotifyNextPlayer();
-                Socket w1 = SpreadWinServer.accept();
-                sockets.add(w1);
-                Socket p1 = gameServer.accept();
-                sockets.add(p1);
-                Socket b1 = blockServer.accept();
-                sockets.add(b1);
-
-                room.NotifyNextPlayer();
-                Socket w2 = SpreadWinServer.accept();
-                sockets.add(w2);
-                Socket p2 = gameServer.accept();
-                sockets.add(p2);
-                Socket b2 = blockServer.accept();
-                sockets.add(b2);
-
-                room.NotifyNextPlayer();
-                Socket w3 = SpreadWinServer.accept();
-                sockets.add(w3);
-                Socket p3 = gameServer.accept();
-                sockets.add(p3);
-                Socket b3 = blockServer.accept();
-                sockets.add(b3);
-
-                sw1 = new SpreadWinThread(1, w1, w2, w3);
-                sw2 = new SpreadWinThread(2, w2, w1, w3);
-                sw3 = new SpreadWinThread(3, w3, w2, w1);
-
-                play1 = new PlayThread(p1, p2, p3);
-                play2 = new PlayThread(p2, p1, p3);
-                play3 = new PlayThread(p3, p1, p2);
-
-                block = new BlockThread(b1, b2, b3);
-
-            } else {
-                room.NotifyNextPlayer();
-                Socket w1 = SpreadWinServer.accept();
-                sockets.add(w1);
-                Socket p1 = gameServer.accept();
-                sockets.add(p1);
-                Socket b1 = blockServer.accept();
-                sockets.add(b1);
-
-                room.NotifyNextPlayer();
-                Socket w2 = SpreadWinServer.accept();
-                sockets.add(w2);
-                Socket p2 = gameServer.accept();
-                sockets.add(p2);
-                Socket b2 = blockServer.accept();
-                sockets.add(b2);
-
-                sw1 = new SpreadWinThread(1, w1, w2);
-                sw2 = new SpreadWinThread(2, w2, w1);
-
-                play1 = new PlayThread(p1, p2);
-                play2 = new PlayThread(p2, p1);
-
-                block = new BlockThread(b1, b2);
+                Socket socket = gameServer.accept();
+                sockets.add(socket);
+                GameServerClient client = new GameServerClient(id, socket);
+                clients.put(id, client);
+                id++;
             }
-
         } catch (IOException ignore) {
         }
-        sw1.start();
-        sw2.start();
-        play1.start();
-        play2.start();
-        block.start();
-        if (GAME_TYPE != GameType.OnevOne) {
-            sw3.start();
-            play3.start();
-            if (GAME_TYPE == GameType.TwovTwo) {
-                sw4.start();
-                play4.start();
-            }
-        }
+        deck.prepare();
+        spreadDominoes();
+        int who = whoStart();
+        clients.forEach((id, client) -> client.handShakeRun(who));
         giveDominoes();
+    }
+
+    private void startNewGame() {
+        deck.prepare();
+        spreadDominoes();
+        giveDominoes();
+    }
+
+    private void giveDominoes() {
+        clients.forEach((id, client) ->
+                client.send_msg(new DominoMsg(DominoComm.NEW_GAME, Domino.to_array(dominoes.get(id))))
+        );
     }
 
     private Domino draw() {
@@ -200,351 +86,176 @@ public class DOMINOS_GameServer extends GameServer {
     }
 
     private int whoStart() {
-        Domino six = new Domino(6, 6, Position.CENTER);
-        for (Domino domino : player2dominoes) {
-            if (domino.equals(six)) {
-                return 2;
-            }
-        }
-        if (GAME_TYPE != GameType.OnevOne) {
-            for (Domino domino : player3dominoes) {
-                if (domino.equals(six)) {
-                    return 3;
-                }
-            }
-            if (GAME_TYPE == GameType.TwovTwo) {
-                for (Domino domino : player4dominoes) {
-                    if (domino.equals(six)) {
-                        return 4;
-                    }
-                }
-            }
-        }
-        return 1; // if six want's found in 2 3 4 players dominos, it must be in player one dominos
+        Domino six = new Domino(6, 6);
+        for (Map.Entry<Integer, List<Domino>> entry : dominoes.entrySet())
+            if (entry.getValue().contains(six)) return entry.getKey();
+        return 1; // if six is nowhere to be found, first player starts
     }
 
     private void spreadDominoes() {
-        if (GAME_TYPE == GameType.TwovTwo) {
-            player1dominoes = new ArrayList<>();
-            player2dominoes = new ArrayList<>();
-            player3dominoes = new ArrayList<>();
-            player4dominoes = new ArrayList<>();
-            int cpt = 0;
-            while (!deck.getDominos().isEmpty()) {
+        int id = 1;
+        while (id <= GAME_TYPE.players) {
+            List<Domino> player_dominoes = new ArrayList<>();
+            for (int i = 0; i < 7; i++) {
                 Domino selected = deck.getDominos().get(0);
                 deck.remove(selected);
-                if (cpt < 7) {
-                    selected.setPosition(Position.BOTTOM);
-                    player1dominoes.add(selected);
-                } else if (cpt < 14) {
-                    selected.setPosition(Position.RIGHT);
-                    player2dominoes.add(selected);
-                } else if (cpt < 21) {
-                    selected.setPosition(Position.TOP);
-                    player3dominoes.add(selected);
-                } else {
-                    selected.setPosition(Position.LEFT);
-                    player4dominoes.add(selected);
-                }
-                cpt++;
+                player_dominoes.add(selected);
             }
-        } else if (GAME_TYPE == GameType.ThreePlayers) {
-            player1dominoes = new ArrayList<>();
-            player2dominoes = new ArrayList<>();
-            player3dominoes = new ArrayList<>();
-            int cpt = 0;
-            while (deck.getDominos().size() > 7) {
-                Domino selected = deck.getDominos().get(0);
-                deck.remove(selected);
-                if (cpt < 7) {
-                    selected.setPosition(Position.BOTTOM);
-                    player1dominoes.add(selected);
-                } else if (cpt < 14) {
-                    selected.setPosition(Position.RIGHT);
-                    player2dominoes.add(selected);
-                } else {
-                    selected.setPosition(Position.TOP);
-                    player3dominoes.add(selected);
-                }
-                cpt++;
-            }
-        } else { // ONE VS ONE
-            player1dominoes = new ArrayList<>();
-            player2dominoes = new ArrayList<>();
-            int cpt = 0;
-            while (deck.getDominos().size() > 14) {
-                Domino selected = deck.getDominos().get(0);
-                deck.remove(selected);
-                if (cpt < 7) {
-                    selected.setPosition(Position.BOTTOM);
-                    player1dominoes.add(selected);
-                } else {
-                    selected.setPosition(Position.RIGHT);
-                    player2dominoes.add(selected);
-                }
-                cpt++;
-            }
+            dominoes.put(id, player_dominoes);
+            id++;
         }
     }
 
-    private void startNewGame() {
-        deck = new Deck();
-        deck.populate();
-        deck.shuffle();
-        spreadDominoes();
-        giveDominoes();
+    private int removeDomino(int left, int right) {
+        Domino played = new Domino(left, right);
+        boolean found = dominoes.get(1).remove(played);
+        if (found) {
+            if (!dominoes.get(1).isEmpty()) return -1;
+            switch (GAME_TYPE) {
+                case TwovTwo:
+                    return getValue(dominoes.get(2)) + getValue(dominoes.get(4));
+                case OnevOne:
+                    return getValue(dominoes.get(2));
+                case ThreePlayers:
+                    return getValue(dominoes.get(2)) + getValue(dominoes.get(3));
+            }
+        }
+        found = dominoes.get(2).remove(played);
+        if (found) {
+            if (!dominoes.get(2).isEmpty()) return -1;
+            switch (GAME_TYPE) {
+                case TwovTwo:
+                case ThreePlayers:
+                    return getValue(dominoes.get(1)) + getValue(dominoes.get(3));
+                case OnevOne:
+                    return getValue(dominoes.get(1));
+            }
+        }
+        found = dominoes.get(3).remove(played);
+        if (found) {
+            if (!dominoes.get(3).isEmpty()) return -1;
+            switch (GAME_TYPE) {
+                case TwovTwo:
+                    return getValue(dominoes.get(2)) + getValue(dominoes.get(4));
+                case ThreePlayers:
+                    return getValue(dominoes.get(1)) + getValue(dominoes.get(2));
+            }
+        }
+        dominoes.get(4).remove(played); // automatically remove from 4th player as we didn't find it in all the others
+        if (!dominoes.get(4).isEmpty()) return -1; // round's not over yet
+        return getValue(dominoes.get(1)) + getValue(dominoes.get(3)); // only two v two has 4 players
     }
 
-    private void giveDominoes() {
-        sw1.giveDominos(player1dominoes);
-        sw2.giveDominos(player2dominoes);
-        if (GAME_TYPE != GameType.OnevOne) {
-            sw3.giveDominos(player3dominoes);
-            if (GAME_TYPE == GameType.TwovTwo) {
-                sw4.giveDominos(player4dominoes);
-            }
-        }
+    private void diffuse_msg(DominoMsg msg) {
+        clients.forEach((id, client) -> client.send_msg(msg));
     }
 
-    private class PlayThread extends Thread {
+    private void send_others(int id, DominoMsg msg) throws IOException {
+        clients.entrySet().stream().filter((entry) -> entry.getKey() != id).
+                forEach((entry) -> entry.getValue().send_msg(msg));
+    }
 
-        private DataInputStream dataIn;
-        private DataOutputStream dataOut;
-        private List<DataOutputStream> others;
+    private void blocked() {
+        int p1_value = getValue(dominoes.get(1));
+        int p2_value = getValue(dominoes.get(2));
+        int id = -1, value = -1;
+        switch (GAME_TYPE) {
+            case TwovTwo: {
+                int p3_value = getValue(dominoes.get(3));
+                int p4_value = getValue(dominoes.get(4));
 
-        public PlayThread(Socket p1, Socket p2, Socket p3, Socket p4) {
-            try {
-                dataIn = new DataInputStream(p1.getInputStream());
-                dataOut = new DataOutputStream(p1.getOutputStream());
-                others = new ArrayList<>();
-                others.add(new DataOutputStream(p2.getOutputStream()));
-                others.add(new DataOutputStream(p3.getOutputStream()));
-                others.add(new DataOutputStream(p4.getOutputStream()));
-            } catch (IOException ignore) {
+                int minteam1Value = Math.min(p1_value, p3_value);
+                int minteam2Value = Math.min(p2_value, p4_value);
+
+                if (minteam1Value < minteam2Value) {
+                    value = p2_value + p4_value;
+                    if (minteam1Value == p1_value) id = 1;
+                    else id = 3;
+                } else if (minteam2Value < minteam1Value) {
+                    value = p1_value + p3_value;
+                    if (minteam2Value == p2_value) id = 2;
+                    else id = 4;
+                } else { // EQUALITY
+                    drawCount = drawCount % 4 + 1;
+                    id = drawCount;
+                    value = 0;
+                }
+                break;
             }
-        }
-
-        public PlayThread(Socket p1, Socket p2, Socket p3) {
-            try {
-                dataIn = new DataInputStream(p1.getInputStream());
-                dataOut = new DataOutputStream(p1.getOutputStream());
-                others = new ArrayList<>();
-                others.add(new DataOutputStream(p2.getOutputStream()));
-                others.add(new DataOutputStream(p3.getOutputStream()));
-            } catch (IOException ignore) {
-            }
-
-        }
-
-        public PlayThread(Socket p1, Socket p2) {
-            try {
-                dataIn = new DataInputStream(p1.getInputStream());
-                dataOut = new DataOutputStream(p1.getOutputStream());
-                others = new ArrayList<>();
-                others.add(new DataOutputStream(p2.getOutputStream()));
-            } catch (IOException ignore) {
-            }
-
-        }
-
-        @Override
-        public void run() {
-            try {
-                while (true) {
-                    int receive = dataIn.readInt(); // receiving an int and giving it to other players
-                    if (receive == -1) { // draw value
-                        Domino draw = draw();
-                        dataOut.writeInt(draw.getLeftValue());
-                        dataOut.writeInt(draw.getRightValue());
+            case ThreePlayers: {
+                int p3_value = getValue(dominoes.get(3));
+                int min = Math.min(p1_value, Math.min(p2_value, p3_value));
+                if (min == p1_value) {
+                    if (min == p2_value || min == p3_value) { // EQUALITY
+                        drawCount = drawCount % 3 + 1;
+                        id = drawCount;
+                        value = 0;
+                    } else { // player 1 won
+                        id = 1;
+                        value = p2_value + p3_value;
                     }
-                    for (DataOutputStream dataout : others) {
-                        dataout.writeInt(receive);
+                } else if (min == p2_value) {
+                    if (min == p3_value) { // EQUALITY
+                        drawCount = drawCount % 3 + 1;
+                        id = drawCount;
+                        value = 0;
+                    } else { // player 2 won
+                        id = 2;
+                        value = p1_value + p3_value;
                     }
+                } else { // player 3 won
+                    id = 3;
+                    value = p1_value + p2_value;
                 }
-            } catch (IOException ignore) {
+                break;
+            }
+            case OnevOne: {
+                if (p1_value < p2_value) { // player 1 won
+                    id = 1;
+                    value = p2_value;
+                } else if (p2_value < p1_value) { // player 2 won
+                    id = 2;
+                    value = p1_value;
+                } else { // EQUALITY
+                    drawCount = drawCount % 2 + 1;
+                    id = drawCount;
+                    value = 0;
+                }
+                break;
             }
         }
+        diffuse_msg(new DominoMsg(DominoComm.BLOCK_RESULT, new Object[]{id, value}));
     }
 
-    private class BlockThread extends Thread {
-
-        private List<DataInputStream> dataIn;
-        private List<DataOutputStream> dataOut;
-
-        public BlockThread(Socket b1, Socket b2, Socket b3, Socket b4) {
-            try {
-                dataIn = new ArrayList<>();
-                dataIn.add(new DataInputStream(b1.getInputStream()));
-                dataIn.add(new DataInputStream(b2.getInputStream()));
-                dataIn.add(new DataInputStream(b3.getInputStream()));
-                dataIn.add(new DataInputStream(b4.getInputStream()));
-
-                dataOut = new ArrayList<>();
-                dataOut.add(new DataOutputStream(b1.getOutputStream()));
-                dataOut.add(new DataOutputStream(b2.getOutputStream()));
-                dataOut.add(new DataOutputStream(b3.getOutputStream()));
-                dataOut.add(new DataOutputStream(b4.getOutputStream()));
-            } catch (IOException ignore) {
-            }
-
+    private int getValue(List<Domino> dominoes) {
+        int cpt = 0;
+        for (Domino domino : dominoes) {
+            cpt += domino.getLeftValue() + domino.getRightValue();
         }
+        return cpt;
+    }
 
-        public BlockThread(Socket b1, Socket b2, Socket b3) {
+    private class GameServerClient extends Thread {
+
+        private ObjectInputStream objIn;
+        private ObjectOutputStream objOut;
+        private int id;
+
+        public GameServerClient(int id, Socket p1) {
             try {
-                dataIn = new ArrayList<>();
-                dataIn.add(new DataInputStream(b1.getInputStream()));
-                dataIn.add(new DataInputStream(b2.getInputStream()));
-                dataIn.add(new DataInputStream(b3.getInputStream()));
-
-                dataOut = new ArrayList<>();
-                dataOut.add(new DataOutputStream(b1.getOutputStream()));
-                dataOut.add(new DataOutputStream(b2.getOutputStream()));
-                dataOut.add(new DataOutputStream(b3.getOutputStream()));
-            } catch (IOException ignore) {
-            }
-
-        }
-
-        public BlockThread(Socket b1, Socket b2) {
-            try {
-                dataIn = new ArrayList<>();
-                dataIn.add(new DataInputStream(b1.getInputStream()));
-                dataIn.add(new DataInputStream(b2.getInputStream()));
-
-                dataOut = new ArrayList<>();
-                dataOut.add(new DataOutputStream(b1.getOutputStream()));
-                dataOut.add(new DataOutputStream(b2.getOutputStream()));
-            } catch (IOException ignore) {
-            }
-        }
-
-        class Block {
-            private final int id;
-            private final int value;
-
-            public Block(int id, int value) {
                 this.id = id;
-                this.value = value;
-            }
-        }
-
-        @Override
-        public void run() {
-            try {
-                while (true) {
-                    Hashtable<Integer, Integer> Blocks = new Hashtable<>();
-                    for (DataInputStream in : dataIn) {
-                        int id = in.readInt();
-                        int value = in.readInt();
-                        Blocks.put(id, value);
-                    }
-                    Block won;
-                    if (GAME_TYPE == GameType.TwovTwo) {
-                        int team1Value = Blocks.get(1) + Blocks.get(3);
-                        int team2Value = Blocks.get(2) + Blocks.get(4);
-
-                        int minteam1Value = Math.min(Blocks.get(1), Blocks.get(3));
-                        int minteam2Value = Math.min(Blocks.get(2), Blocks.get(4));
-
-                        if (minteam1Value < minteam2Value) {
-                            if (minteam1Value == Blocks.get(1))
-                                won = new Block(1, team2Value);
-                            else
-                                won = new Block(3, team2Value);
-                        } else if (minteam2Value < minteam1Value) {
-                            if (minteam1Value == Blocks.get(2))
-                                won = new Block(2, team1Value);
-                            else
-                                won = new Block(4, team1Value);
-                        } else {
-                            drawCount = drawCount % 4 + 1;
-                            won = new Block(drawCount, 0);
-                        }
-                    } else if (GAME_TYPE == GameType.ThreePlayers) {
-                        int team1Value = Blocks.get(1);
-                        int team2Value = Blocks.get(2);
-                        int team3Value = Blocks.get(3);
-                        int min = Math.min(team1Value, Math.min(team2Value, team3Value));
-                        if (min == team1Value) {
-                            if (min == team2Value || min == team3Value) { // EQUALITY
-                                drawCount = drawCount % 3 + 1;
-                                won = new Block(drawCount, 0);
-                            } else { // team1 won
-                                won = new Block(1, team2Value + team3Value);
-                            }
-                        } else if (min == team2Value) {
-                            if (min == team3Value) { // EQUALITY
-                                drawCount = drawCount % 3 + 1;
-                                won = new Block(drawCount, 0);
-                            } else { // team2 won
-                                won = new Block(2, team1Value + team3Value);
-                            }
-                        } else { // team3 won !
-                            won = new Block(3, team1Value + team2Value);
-                        }
-                    } else { // 1 VS 1
-                        int team1Value = Blocks.get(1);
-                        int team2Value = Blocks.get(2);
-                        if (team1Value < team2Value) { // team 1 won
-                            won = new Block(1, team2Value);
-                        } else if (team2Value < team1Value) { // team2 won
-                            won = new Block(2, team1Value);
-                        } else { // EQUALITY
-                            drawCount = drawCount % 2 + 1;
-                            won = new Block(drawCount, 0);
-                        }
-                    }
-                    for (DataOutputStream out : dataOut) {
-                        out.writeInt(won.id);
-                        out.writeInt(won.value);
-                    }
-                }
-            } catch (IOException ignore) {
-            }
-        }
-    }
-
-    private class SpreadWinThread extends Thread {
-
-        private DataInputStream dataIn;
-        private DataOutputStream dataOut;
-        private List<DataOutputStream> others;
-
-        public SpreadWinThread(int id, Socket w1, Socket w2, Socket w3, Socket w4) {
-            try {
-                dataOut = new DataOutputStream(w1.getOutputStream());
-                dataIn = new DataInputStream(w1.getInputStream());
-                dataOut.writeInt(id); // giving id and who start
-                dataOut.writeInt(whoStart());
-                others = new ArrayList<>();
-                others.add(new DataOutputStream(w2.getOutputStream()));
-                others.add(new DataOutputStream(w4.getOutputStream()));
-                others.add(new DataOutputStream(w3.getOutputStream()));
+                objOut = new ObjectOutputStream(p1.getOutputStream());
+                objIn = new ObjectInputStream(p1.getInputStream());
             } catch (IOException ignore) {
             }
         }
 
-        public SpreadWinThread(int id, Socket w1, Socket w2, Socket w3) {
+        private void handShakeRun(int who) {
             try {
-                dataOut = new DataOutputStream(w1.getOutputStream());
-                dataOut.writeInt(id); // giving id and who start
-                dataOut.writeInt(whoStart());
-                dataIn = new DataInputStream(w1.getInputStream());
-                others = new ArrayList<>();
-                others.add(new DataOutputStream(w2.getOutputStream()));
-                others.add(new DataOutputStream(w3.getOutputStream()));
-            } catch (IOException ignore) {
-            }
-        }
-
-        public SpreadWinThread(int id, Socket w1, Socket w2) {
-            try {
-                dataOut = new DataOutputStream(w1.getOutputStream());
-                dataOut.writeInt(id); // giving id and who start
-                dataOut.writeInt(whoStart());
-                dataIn = new DataInputStream(w1.getInputStream());
-                others = new ArrayList<>();
-                others.add(new DataOutputStream(w2.getOutputStream()));
+                objOut.writeInt(id); // giving id and who start
+                objOut.writeInt(who);
+                objOut.flush();
+                start();
             } catch (IOException ignore) {
             }
         }
@@ -553,24 +264,44 @@ public class DOMINOS_GameServer extends GameServer {
         public void run() {
             try {
                 while (true) {
-                    int value = dataIn.readInt();
-                    if (value == -1)
-                        startNewGame();
-                    else
-                        for (DataOutputStream out : others) {
-                            out.writeInt(value);
+                    DominoMsg msg = (DominoMsg) objIn.readObject();
+                    DominoComm msg_comm = DominoComm.values()[msg.comm];
+                    switch (msg_comm) {
+                        case PLAYED_LEFT:
+                        case PLAYED_RIGHT: {
+                            send_others(id, msg);
+                            int points = removeDomino((int) msg.adt_data[0], (int) msg.adt_data[1]);
+                            if (points >= 0) {
+                                diffuse_msg(new DominoMsg(DominoComm.GAME_END, new Object[]{points}));
+                                startNewGame();
+                            }
+                            break;
                         }
+                        case BLOCKED: {
+                            blocked();
+                            startNewGame();
+                            break;
+                        }
+                        case DRAW: {
+                            Domino draw = draw();
+                            dominoes.get(id).add(draw);
+                            send_msg(new DominoMsg(msg_comm, draw.to_array()));
+                            send_others(id, msg);
+                            break;
+                        }
+                        default: {
+                            send_others(id, msg);
+                        }
+                    }
                 }
-            } catch (IOException ignore) {
+            } catch (IOException | ClassNotFoundException ignore) {
             }
         }
 
-        public void giveDominos(List<Domino> dominoes) {
+        public void send_msg(DominoMsg msg) {
             try {
-                for (Domino domino : dominoes) {
-                    dataOut.writeInt(domino.getLeftValue());
-                    dataOut.writeInt(domino.getRightValue());
-                }
+                objOut.writeObject(msg);
+                objOut.flush();
             } catch (IOException ignore) {
             }
         }

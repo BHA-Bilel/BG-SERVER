@@ -35,7 +35,8 @@ public class Main {
                          DataOutputStream dataOut = new DataOutputStream(s.getOutputStream());
                          DataInputStream datajIn = new DataInputStream(s.getInputStream())) {
                         Game game = Game.values()[datajIn.readInt()];
-                        int port = serverMap.get(game);
+                        Integer port = serverMap.get(game);
+                        if (port == null) port = -1;
                         dataOut.writeInt(port);
                         dataOut.flush();
                     } catch (IOException ignore) {

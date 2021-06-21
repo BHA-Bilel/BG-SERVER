@@ -14,7 +14,7 @@ application {
     mainModule.set("MainModule")
 }
 
-jlink {
+jlink { // todo recreate setup zips before commiting!
     launcher {
         name = 'start_server'
     }

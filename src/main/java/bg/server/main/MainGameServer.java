@@ -4,7 +4,7 @@ import bg.server.Main;
 import bg.server.room.RoomServer;
 import shared.Game;
 import shared.MainRequest;
-import shared.RoomInfo;
+import shared.OnlineRoomInfo;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -98,18 +98,18 @@ public class MainGameServer extends Thread {
             this.objIn = objIn;
         }
 
-        private List<RoomInfo> featureMore() {
+        private List<OnlineRoomInfo> featureMore() {
             if (room_iterator == null || !room_iterator.hasNext()) {
                 room_iterator = rooms.entrySet().iterator();
             }
-            List<RoomInfo> roomInfos = new ArrayList<>();
-            while (room_iterator.hasNext() && roomInfos.size() < 5) {
+            List<OnlineRoomInfo> onlineRoomInfos = new ArrayList<>();
+            while (room_iterator.hasNext() && onlineRoomInfos.size() < 5) {
                 RoomServer room = room_iterator.next().getValue();
                 if (room != null && room.isPublic() && !room.isFull() && !room.inGamePhase()) {
-                    roomInfos.add(new RoomInfo(room.getPort(), room.getHostName(), room.getPlayersCount()));
+                    onlineRoomInfos.add(new OnlineRoomInfo(room.getPort(), room.getHostName(), room.getPlayersCount()));
                 }
             }
-            return roomInfos;
+            return onlineRoomInfos;
         }
 
         @Override
@@ -117,9 +117,9 @@ public class MainGameServer extends Thread {
             boolean get_more;
             try {
                 do {
-                    List<RoomInfo> feature = featureMore();
+                    List<OnlineRoomInfo> feature = featureMore();
                     objOut.writeInt(feature.size());
-                    for (RoomInfo info : feature) {
+                    for (OnlineRoomInfo info : feature) {
                         objOut.writeObject(info);
                     }
                     objOut.flush();

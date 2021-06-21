@@ -19,6 +19,7 @@ public class Client extends Thread {
     private final ObjectInputStream objIn;
     private final ObjectOutputStream objOut;
     private final RoomServer room;
+    private volatile boolean closed = false;
 
     public Client(RoomServer room, Socket socket) throws IOException {
         this.room = room;
@@ -157,17 +158,14 @@ public class Client extends Thread {
         }
     }
 
-    private volatile boolean closed = false;
-
     public synchronized void closeConnection() {
-        if (!closed) {
-            try {
-                objIn.close();
-                objOut.close();
-                socket.close();
-            } catch (IOException ignore) {
-            }
-            closed = true;
+        if (closed) return;
+        closed = true;
+        try {
+            objIn.close();
+            objOut.close();
+            socket.close();
+        } catch (IOException ignore) {
         }
     }
 

@@ -14,6 +14,7 @@ public class ChatServer {
 
     private final ServerSocket chatServer;
     private final List<ChatClient> clients;
+    private volatile boolean closed = false;
 
     public ChatServer() throws IOException {
         chatServer = new ServerSocket(0);
@@ -60,17 +61,14 @@ public class ChatServer {
             }
         }
 
-        private volatile boolean closed = false;
-
         private synchronized void closeConn() {
-            if (!closed) {
-                try {
-                    objOut.close();
-                    objIn.close();
-                    chatSocket.close();
-                } catch (IOException ignore) {
-                }
-                closed = true;
+            if (closed) return;
+            closed = true;
+            try {
+                objOut.close();
+                objIn.close();
+                chatSocket.close();
+            } catch (IOException ignore) {
             }
         }
 
