@@ -14,9 +14,9 @@ application {
     mainModule.set("MainModule")
 }
 
-jlink { // todo recreate setup zips before commiting!
+jlink {
     launcher {
-        name = 'start_server'
+        name = 'start-server'
     }
     targetPlatform("win32") {
         jdkHome = "F:/cross-platform-deploy/win32/OpenJDK11U-jdk_x86-32_windows_hotspot_11.0.11_9/jdk-11.0.11+9"

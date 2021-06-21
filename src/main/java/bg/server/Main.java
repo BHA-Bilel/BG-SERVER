@@ -3,33 +3,21 @@ package bg.server;
 import bg.server.main.MainGameServer;
 import shared.Game;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 public class Main {
-    private static int PORT;
     private static ServerSocket mainServer;
     public static final Map<Game, Integer> serverMap = new HashMap<>();
 
     public static void main(String[] args) {
-        Properties prop = new Properties();
-        try (InputStream ip = Main.class.getResourceAsStream("/config.properties")) {
-            prop.load(ip);
-            PORT = Integer.parseInt(prop.getProperty("PORT"));
-        } catch (IOException e) {
-            System.err.println("Couldn't read properties file!");
-            System.exit(1);
-        }
         Thread mainThread = new Thread(() -> {
             try {
-                mainServer = new ServerSocket(PORT);
+                mainServer = new ServerSocket(0);
+                System.out.println("MAIN SERVER STARTED");
+                System.out.println("IP: " + get_public_ip());
+                System.out.println("PORT: " + mainServer.getLocalPort());
                 while (true) {
                     try (Socket s = mainServer.accept();
                          DataOutputStream dataOut = new DataOutputStream(s.getOutputStream());
@@ -57,7 +45,11 @@ public class Main {
             }
         }
         mainThread.start();
-        System.out.println("SERVER STARTED SUCCESSFULLY");
+    }
+
+    private static String get_public_ip() throws IOException {
+        return new BufferedReader(new InputStreamReader(
+                new URL("http://checkip.amazonaws.com").openStream())).readLine();
     }
 
 }
